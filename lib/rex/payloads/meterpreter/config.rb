@@ -10,6 +10,7 @@ class Rex::Payloads::Meterpreter::Config
 
   URL_SIZE = 512
   UA_SIZE = 256
+  NS_NAME_SIZE = 254
   PROXY_HOST_SIZE = 128
   PROXY_USER_SIZE = 64
   PROXY_PASS_SIZE = 64
@@ -67,11 +68,15 @@ private
     if lhost && opts[:scheme].start_with?('http') && Rex::Socket.is_ipv6?(lhost)
       lhost = "[#{lhost}]"
     end
-
-    url = "#{opts[:scheme]}://#{lhost}:#{opts[:lport]}"
-    url << "#{opts[:uri]}/" if opts[:uri]
-    url << "?#{opts[:scope_id]}" if opts[:scope_id]
-
+	
+	if lhost && opts[:scheme].start_with?('dns')
+	  url = "#{opts[:scheme]}://#{lhost}"
+	else
+      url = "#{opts[:scheme]}://#{lhost}:#{opts[:lport]}"
+      url << "#{opts[:uri]}/" if opts[:uri]
+      url << "?#{opts[:scope_id]}" if opts[:scope_id]
+    end 
+	
     # if the transport URI is for a HTTP payload we need to add a stack
     # of other stuff
     pack = 'A*VVV'
@@ -106,6 +111,10 @@ private
 
       # update the packing spec
       pack << 'A*A*A*A*A*'
+	elsif url.start_with?('dns')
+	  ns_server = to_str(opts[:nhost] || '', NS_NAME_SIZE) 
+	  transport_data << ns_server
+	  pack << 'A*'
     end
 
     # return the packed transport information

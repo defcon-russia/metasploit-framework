@@ -1066,7 +1066,7 @@ class Core
     cmds     = []
     script   = nil
     reset_ring = false
-    response_timeout = 15
+    response_timeout = 1200
 
     # any arguments that don't correspond to an option or option arg will
     # be put in here

@@ -30,7 +30,17 @@ module Msf
     def self.LHOST(default=nil, required=true, desc="The listen address")
       Msf::OptAddress.new(__method__.to_s, [ required, desc, default ])
     end
+	
+	# @return [OptAddress]
+    def self.DOMAIN(default=nil, required=true, desc="The listen address")
+      Msf::OptAddress.new(__method__.to_s, [ required, desc, default ])
+    end
 
+	# @return [OptAddress]
+    def self.NS_IP(default=nil, required=true, desc="The listen address")
+      Msf::OptAddress.new(__method__.to_s, [ required, desc, default ])
+    end
+	
     # @return [OptPort]
     def self.LPORT(default=nil, required=true, desc="The listen port")
       Msf::OptPort.new(__method__.to_s, [ required, desc, default ])
@@ -63,6 +73,8 @@ module Msf
       alias builtin_chost CHOST
       alias builtin_cport CPORT
       alias builtin_lhost LHOST
+	  alias builtin_domain DOMAIN
+	  alias builtin_ns_ip NS_IP
       alias builtin_lport LPORT
       alias builtin_proxies Proxies
       alias builtin_rhost RHOST
@@ -72,6 +84,8 @@ module Msf
     CHOST = CHOST()
     CPORT = CPORT()
     LHOST = LHOST()
+	DOMAIN = DOMAIN()
+	NS_IP = NS_IP()
     LPORT = LPORT()
     Proxies = Proxies()
     RHOST = RHOST()

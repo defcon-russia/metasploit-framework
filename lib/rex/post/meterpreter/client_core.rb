@@ -37,6 +37,7 @@ class ClientCore < Extension
   METERPRETER_TRANSPORT_SSL   = 0
   METERPRETER_TRANSPORT_HTTP  = 1
   METERPRETER_TRANSPORT_HTTPS = 2
+  METERPRETER_TRANSPORT_DNS = 4
 
   TIMEOUT_SESSION = 24*3600*7  # 1 week
   TIMEOUT_COMMS = 300          # 5 minutes
@@ -45,6 +46,7 @@ class ClientCore < Extension
 
   VALID_TRANSPORTS = {
     'reverse_tcp'   => METERPRETER_TRANSPORT_SSL,
+	'reverse_dns'  => METERPRETER_TRANSPORT_DNS,
     'reverse_http'  => METERPRETER_TRANSPORT_HTTP,
     'reverse_https' => METERPRETER_TRANSPORT_HTTPS,
     'bind_tcp'      => METERPRETER_TRANSPORT_SSL
@@ -73,7 +75,7 @@ class ClientCore < Extension
     request.add_tlv(TLV_TYPE_STRING, extension_name)
 
     begin
-      response = self.client.send_packet_wait_response(request, self.client.response_timeout)
+      response = self.client.send_packet_wait_response(request, self.client.response_timeout) #self.client.response_timeout)
     rescue
       # In the case where orphaned shells call back with OLD copies of the meterpreter
       # binaries, we end up with a case where this fails. So here we just return the
@@ -118,7 +120,8 @@ class ClientCore < Extension
         :proxy_host   => t.get_tlv_value(TLV_TYPE_TRANS_PROXY_HOST),
         :proxy_user   => t.get_tlv_value(TLV_TYPE_TRANS_PROXY_USER),
         :proxy_pass   => t.get_tlv_value(TLV_TYPE_TRANS_PROXY_PASS),
-        :cert_hash    => t.get_tlv_value(TLV_TYPE_TRANS_CERT_HASH)
+        :cert_hash    => t.get_tlv_value(TLV_TYPE_TRANS_CERT_HASH),
+        :nhost        => t.get_tlv_value(TLV_TYPE_TRANS_NSHOST)
       }
     }
 
@@ -231,7 +234,7 @@ class ClientCore < Extension
     end
 
     # Transmit the request and wait the default timeout seconds for a response
-    response = self.client.send_packet_wait_response(request, self.client.response_timeout)
+    response = self.client.send_packet_wait_response(request, self.client.response_timeout) #self.client.response_timeout)
 
     # No response?
     if response.nil?
@@ -480,11 +483,13 @@ class ClientCore < Extension
       end
       # Rex::Post::FileStat#writable? isn't available
     end
-
+    puts("migrate_stub ... ")
     migrate_stub = generate_migrate_stub(target_process)
+    puts("migrate_payload")
     migrate_payload = generate_migrate_payload(target_process)
 
     # Build the migration request
+    puts("req: core_migrate")
     request = Packet.create_request('core_migrate')
 
     if client.platform == 'linux'
@@ -508,16 +513,23 @@ class ClientCore < Extension
       request.add_tlv(TLV_TYPE_MIGRATE_SOCKET_PATH, socket_path, false, client.capabilities[:zlib])
     end
 
+    puts("1")
     request.add_tlv( TLV_TYPE_MIGRATE_PID, target_pid )
+    puts("2")
     request.add_tlv( TLV_TYPE_MIGRATE_PAYLOAD_LEN, migrate_payload.length )
+    puts("3")
     request.add_tlv( TLV_TYPE_MIGRATE_PAYLOAD, migrate_payload, false, client.capabilities[:zlib])
+    puts("4")
     request.add_tlv( TLV_TYPE_MIGRATE_STUB_LEN, migrate_stub.length )
+    puts("5")
     request.add_tlv( TLV_TYPE_MIGRATE_STUB, migrate_stub, false, client.capabilities[:zlib])
+    puts("6")
 
     if target_process['arch'] == ARCH_X64
       request.add_tlv( TLV_TYPE_MIGRATE_ARCH, 2 ) # PROCESS_ARCH_X64
 
     else
+      puts("7")
       request.add_tlv( TLV_TYPE_MIGRATE_ARCH, 1 ) # PROCESS_ARCH_X86
     end
 
@@ -529,7 +541,8 @@ class ClientCore < Extension
 
     # Send the migration request. Timeout can be specified by the caller, or set to a min
     # of 60 seconds.
-    timeout = [(opts[:timeout] || 0), 60].max
+    timeout = 20*60 #[(opts[:timeout] || 0), 60].max
+    puts("SENT MIG")
     client.send_request(request, timeout)
 
     if client.passive_service
@@ -620,9 +633,7 @@ private
 
     if client.platform == 'windows' && [ARCH_X86, ARCH_X64].include?(client.arch)
       t = get_current_transport
-
       c = Class.new(::Msf::Payload)
-
       if target_process['arch'] == ARCH_X86
         c.include(::Msf::Payload::Windows::BlockApi)
         case t[:url]
@@ -631,6 +642,9 @@ private
         when /^http/i
           # Covers HTTP and HTTPS
           c.include(::Msf::Payload::Windows::MigrateHttp)
+        when /^dns/i
+          # Covers reverse DNS
+          c.include(::Msf::Payload::Windows::MigrateDns)  
         end
       else
         c.include(::Msf::Payload::Windows::BlockApi_x64)
@@ -642,12 +656,10 @@ private
           c.include(::Msf::Payload::Windows::MigrateHttp_x64)
         end
       end
-
       stub = c.new().generate
     else
       raise RuntimeError, "Unsupported session #{client.session_type}"
     end
-
     stub
   end
 

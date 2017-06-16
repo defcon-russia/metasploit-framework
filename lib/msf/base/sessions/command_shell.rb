@@ -93,7 +93,7 @@ class CommandShell
     # Send the command to the session's stdin.
     shell_write(cmd + "\n")
 
-    timeo = 5
+    timeo = 20*60
     etime = ::Time.now.to_f + timeo
     buff = ""
 

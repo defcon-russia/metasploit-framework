@@ -2763,6 +2763,16 @@ RSpec.describe 'modules/payloads', :content do
                           modules_pathname: modules_pathname,
                           reference_name: 'windows/meterpreter_reverse_http'
   end
+  
+  context 'windows/meterpreter_reverse_dns' do
+    it_should_behave_like 'payload cached size is consistent',
+                          ancestor_reference_names: [
+                            'singles/windows/meterpreter_reverse_dns'
+                          ],
+                          dynamic_size: false,
+                          modules_pathname: modules_pathname,
+                          reference_name: 'windows/meterpreter_reverse_dns'
+  end
 
   context 'windows/meterpreter_reverse_https' do
     it_should_behave_like 'payload cached size is consistent',
