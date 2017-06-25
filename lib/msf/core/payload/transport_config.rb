@@ -37,9 +37,9 @@ module Msf::Payload::TransportConfig
       lhost:  datastore['DOMAIN'],
       nhost:  datastore['NS_IP'],
       timeout: 20*60,
-      comm_timeout: 20*60,
+      comm_timeout: 60*60,
       retry_total:  datastore['SessionRetryTotal'].to_i,
-      retry_wait:   datastore['SessionRetryWait'].to_i  
+      retry_wait:   20*60 
     }
   end
   

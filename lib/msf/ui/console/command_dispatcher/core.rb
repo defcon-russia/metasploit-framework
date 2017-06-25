@@ -1140,7 +1140,7 @@ class Core
     cmds     = []
     script   = nil
     reset_ring = false
-    response_timeout = 15
+    response_timeout = 1500
     search_term = nil
 
     # any arguments that don't correspond to an option or option arg will
