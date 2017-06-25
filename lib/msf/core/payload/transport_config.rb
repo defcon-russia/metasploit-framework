@@ -31,24 +31,24 @@ module Msf::Payload::TransportConfig
     }.merge(timeout_config)
   end
 
-  def transport_config_reverse_https(opts={})
-    config = transport_config_reverse_http(opts)
-    config[:scheme] = 'https'
-    config[:ssl_cert_hash] = get_ssl_cert_hash(datastore['StagerVerifySSLCert'],
-                                               datastore['HandlerSSLCert'])
-    config
-  end
-  
   def transport_config_reverse_dns(opts={})
-	{
-	  scheme: 'dns',
+    {
+    scheme: 'dns',
       lhost:  datastore['DOMAIN'],
-	  nhost:  datastore['NS_IP'],
+      nhost:  datastore['NS_IP'],
       timeout: 20*60,
       comm_timeout: 20*60,
       retry_total:  datastore['SessionRetryTotal'].to_i,
       retry_wait:   datastore['SessionRetryWait'].to_i  
     }
+  end
+  
+  def transport_config_reverse_https(opts={})
+    config = transport_config_reverse_http(opts)
+    config[:scheme] = datastore['OverrideScheme'] || 'https'
+    config[:ssl_cert_hash] = get_ssl_cert_hash(datastore['StagerVerifySSLCert'],
+                                               datastore['HandlerSSLCert'])
+    config
   end
 
   def transport_config_reverse_http(opts={})
@@ -63,7 +63,7 @@ module Msf::Payload::TransportConfig
     end
 
     {
-      scheme:      'http',
+      scheme:      datastore['OverrideScheme'] || 'http',
       lhost:       opts[:lhost] || datastore['LHOST'],
       lport:       (opts[:lport] || datastore['LPORT']).to_i,
       uri:         uri,

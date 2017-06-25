@@ -3,7 +3,6 @@
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-require 'msf/core'
 require 'net/ssh'
 require 'metasploit/framework/login_scanner/ssh'
 require 'metasploit/framework/credential_collection'
@@ -263,6 +262,11 @@ class MetasploitModule < Msf::Auxiliary
     def initialize(opts={})
       super
       valid!
+    end
+
+    # Override CredentialCollection#has_privates?
+    def has_privates?
+      !@key_data.empty?
     end
 
     def realm

@@ -3,9 +3,6 @@
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-require 'msf/core'
-require 'rex'
-
 class MetasploitModule < Msf::Post
 
   def initialize(info={})
@@ -26,7 +23,7 @@ class MetasploitModule < Msf::Post
         OptInt.new(    'PID',  [false, 'PID of process to migrate to.']),
         OptString.new( 'NAME', [false, 'Name of process to migrate to.']),
         OptBool.new(   'KILL', [false, 'Kill original process for the session.', false])
-      ], self.class)
+      ])
   end
 
   # Run Method for when run command is issued
@@ -42,7 +39,7 @@ class MetasploitModule < Msf::Post
     if datastore['SPAWN']
       print_status("Spawning notepad.exe process to migrate to")
       target_pid = create_temp_proc
-    elsif datastore['PID'] != 0
+    elsif datastore['PID']
       target_pid = datastore['PID']
     elsif datastore['NAME']
       target_pid = session.sys.process[datastore['NAME']]

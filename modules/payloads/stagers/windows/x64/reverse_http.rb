@@ -3,13 +3,12 @@
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-require 'msf/core'
 require 'msf/core/handler/reverse_http'
 require 'msf/core/payload/windows/x64/reverse_http'
 
 module MetasploitModule
 
-  CachedSize = 501
+  CachedSize = 520
 
   include Msf::Payload::Stager
   include Msf::Payload::Windows

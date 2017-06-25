@@ -28,6 +28,8 @@ class Console::CommandDispatcher::Stdapi::Fs
   @@download_opts = Rex::Parser::Arguments.new(
     "-h" => [ false, "Help banner." ],
     "-c" => [ false, "Resume getting a partially-downloaded file." ],
+    "-a" => [ false, "Enable adaptive download buffer size." ],
+    "-b" => [ true,  "Set the initial block size for the download." ],
     "-l" => [ true,  "Set the limit of retries (0 unlimits)." ],
     "-r" => [ false, "Download recursively." ],
     "-t" => [ false, "Timestamp downloaded files." ])
@@ -102,18 +104,7 @@ class Console::CommandDispatcher::Stdapi::Fs
       'show_mount' => ['stdapi_fs_mount_show'],
     }
 
-    all.delete_if do |cmd, desc|
-      del = false
-      reqs[cmd].each do |req|
-        next if client.commands.include? req
-        del = true
-        break
-      end
-
-      del
-    end
-
-    all
+    filter_commands(all, reqs)
   end
 
   #
@@ -309,15 +300,15 @@ class Console::CommandDispatcher::Stdapi::Fs
   end
 
   #
-  # Delete the specified file.
+  # Delete the specified file(s).
   #
   def cmd_rm(*args)
     if (args.length == 0)
-      print_line("Usage: rm file")
+      print_line("Usage: rm file1 [file2...]")
       return true
     end
 
-    client.fs.file.rm(args[0])
+    args.each { |f| client.fs.file.rm(f) }
 
     return true
   end
@@ -382,6 +373,10 @@ class Console::CommandDispatcher::Stdapi::Fs
 
     @@download_opts.parse(args) { |opt, idx, val|
       case opt
+      when "-a"
+        opts['adaptive'] = true
+      when "-b"
+        opts['block_size'] = val.to_i
       when "-r"
         recursive = true
         opts['recursive'] = true
@@ -442,7 +437,7 @@ class Console::CommandDispatcher::Stdapi::Fs
           files.each do |file|
             src_separator = client.fs.file.separator
             src_path = file['path'] + client.fs.file.separator + file['name']
-            dest_path = src_path.tr(src_separator, ::File::SEPARATOR)
+            dest_path = ::File.join(dest, ::Rex::FileUtils::clean_path(file['path'].tr(src_separator, ::File::SEPARATOR)))
 
             client.fs.file.download(dest_path, src_path, opts) do |step, src, dst|
               print_status("#{step.ljust(11)}: #{src} -> #{dst}")
@@ -756,7 +751,11 @@ class Console::CommandDispatcher::Stdapi::Fs
     # Source and destination will be the same
     src_items << last if src_items.empty?
 
-    dest = last
+    if args.size == 1
+      dest = last.split(/(\/|\\)/).last
+    else
+      dest = last
+    end
 
     # Go through each source item and upload them
     src_items.each { |src|

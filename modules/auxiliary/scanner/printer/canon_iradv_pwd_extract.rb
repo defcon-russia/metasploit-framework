@@ -3,8 +3,6 @@
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-require 'msf/core'
-
 class MetasploitModule < Msf::Auxiliary
 
   include Msf::Exploit::Remote::HttpClient
@@ -44,7 +42,7 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('PASSWD', [ true, 'The default Admin password', '7654321']),
         OptInt.new('TIMEOUT', [true, 'Timeout for printer probe', 20])
 
-      ], self.class)
+      ])
   end
 
   def run_host(ip)
@@ -70,7 +68,7 @@ class MetasploitModule < Msf::Auxiliary
     #grab Canon sessionid cookie
     idcookie = res.nil? ? nil : res.get_cookies
 
-    if res.code == 301 || res.code == 302 && res.headers.include?('Location')
+    if res && (res.code == 301 || res.code == 302 && res.headers.include?('Location'))
       print_good("#{rhost} - SUCCESSFUL login with USER='#{datastore['USER']}' : PASSWORD='#{datastore['PASSWD']}'")
 
       #grab Canon IR= session cookie
