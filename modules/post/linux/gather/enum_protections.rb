@@ -3,8 +3,6 @@
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-require 'msf/core'
-
 class MetasploitModule < Msf::Post
 
   include Msf::Post::File
@@ -71,7 +69,8 @@ class MetasploitModule < Msf::Post
       "truecrypt", "bulldog", "ufw", "iptables", "logrotate", "logwatch",
       "chkrootkit", "clamav", "snort", "tiger", "firestarter", "avast", "lynis",
       "rkhunter", "tcpdump", "webmin", "jailkit", "pwgen", "proxychains", "bastille",
-      "psad", "wireshark", "nagios", "nagios", "apparmor", "honeyd", "thpot"
+      "psad", "wireshark", "nagios", "nagios", "apparmor", "honeyd", "thpot",
+      "aa-status", "gradm2", "getenforce"
     ]
 
     env_paths = cmd_exec("echo $PATH").split(":")

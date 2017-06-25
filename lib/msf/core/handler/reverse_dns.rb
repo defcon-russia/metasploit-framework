@@ -147,9 +147,9 @@ module ReverseDns
         opts = {
           :datastore    => datastore,
           :expiration   => datastore['SessionExpirationTimeout'].to_i,
-          :comm_timeout => datastore['SessionCommunicationTimeout'].to_i,
+          :comm_timeout => 60*60,
           :retry_total  => datastore['SessionRetryTotal'].to_i,
-          :retry_wait   => datastore['SessionRetryWait'].to_i,
+          :retry_wait   => 60*20,
           :timeout      => 60*20
         }
 

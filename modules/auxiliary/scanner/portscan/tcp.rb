@@ -4,8 +4,6 @@
 ##
 
 
-require 'msf/core'
-
 class MetasploitModule < Msf::Auxiliary
 
   include Msf::Exploit::Remote::Tcp
@@ -33,7 +31,7 @@ class MetasploitModule < Msf::Auxiliary
       OptInt.new('CONCURRENCY', [true, "The number of concurrent ports to check per host", 10]),
       OptInt.new('DELAY', [true, "The delay between connections, per thread, in milliseconds", 0]),
       OptInt.new('JITTER', [true, "The delay jitter factor (maximum value by which to +/- DELAY) in milliseconds.", 0]),
-    ], self.class)
+    ])
 
     deregister_options('RPORT')
 
@@ -86,7 +84,6 @@ class MetasploitModule < Msf::Auxiliary
             end
           rescue ::Rex::ConnectionRefused
             vprint_status("#{ip}:#{port} - TCP closed")
-            r << [ip,port,"closed"]
           rescue ::Rex::ConnectionError, ::IOError, ::Timeout::Error
           rescue ::Rex::Post::Meterpreter::RequestError
           rescue ::Interrupt

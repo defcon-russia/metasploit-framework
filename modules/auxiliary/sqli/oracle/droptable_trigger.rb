@@ -3,8 +3,6 @@
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-require 'msf/core'
-
 class MetasploitModule < Msf::Auxiliary
 
   include Msf::Exploit::FILEFORMAT
@@ -32,10 +30,8 @@ class MetasploitModule < Msf::Auxiliary
         [
           OptString.new('SQL',      [ false, 'The SQL to execute.',  'GRANT DBA TO SCOTT']),
           OptString.new('USER',      [ false, 'The current user. ',  'SCOTT']),
-          OptString.new('FILENAME', [ false, 'The file name.',  'msf.sql']),
-          OptString.new('OUTPUTPATH', [ false, 'The location of the file.',  './data/exploits/']),
-
-        ], self.class)
+          OptString.new('FILENAME', [ false, 'The file name.',  'msf.sql'])
+        ])
   end
 
   def run
