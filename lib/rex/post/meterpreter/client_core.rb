@@ -724,7 +724,9 @@ private
         when /^http/i
           # Covers HTTP and HTTPS
           c.include(::Msf::Payload::Windows::MigrateHttp_x64)
-        # TODO DNS 64
+        when /^dns/i
+          # Covers reverse DNS
+          c.include(::Msf::Payload::Windows::MigrateDns_x64)
         end
         
       end
