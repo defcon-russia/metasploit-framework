@@ -12,11 +12,11 @@ module MetasploitModule
 
   include Msf::Payload::Stager
   include Msf::Payload::Windows
-  include Msf::Payload::Windows::ReverseHttp
+  include Msf::Payload::Windows::ReverseDns_x64
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'        => 'Windows Reverse DNS Stager (wininet)',
+      'Name'        => 'Windows Reverse DNS Stager',
       'Description' => 'Tunnel communication over reverse DNS',
       'Author'      => 'hdm',
       'License'     => MSF_LICENSE,

