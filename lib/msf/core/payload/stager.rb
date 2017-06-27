@@ -41,6 +41,8 @@ module Msf::Payload::Stager
         proto = 'tcp'
     elsif self.refname =~ /_https/
         proto = 'https'
+    elsif self.refname =~ /_dns/
+        proto = 'dns'
     else
         proto = 'http'
     end
@@ -166,7 +168,6 @@ module Msf::Payload::Stager
     # established (which is the default), then go ahead and transmit it.
     if (stage_over_connection?)
       opts = {}
-
       if respond_to? :include_send_uuid
         if include_send_uuid
           uuid_raw = conn.get_once(16, 1)
@@ -175,7 +176,6 @@ module Msf::Payload::Stager
           end
         end
       end
-
       p = generate_stage(opts)
 
       # Encode the stage if stage encoding is enabled

@@ -23,6 +23,7 @@ module MetasploitModule
       'Platform'    => 'win',
       'Arch'        => ARCH_X86,
       'Handler'     => Msf::Handler::ReverseDns,
+      'Stager'      => { 'RequiresMidstager' => false },
       'Convention'  => 'sockedi dns'))
   end
 end

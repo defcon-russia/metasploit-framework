@@ -115,7 +115,6 @@ module Msf::Payload::Windows
     end
 
     return false if (payload.length < 512)
-
     # The mid-stage works by reading in a four byte length in host-byte
     # order (which represents the length of the stage). Following that, it
     # reads in the entire second stage until all bytes are read. It reads the
