@@ -105,7 +105,7 @@ module Payload::Windows::ReverseDns
     ns_server    = "0x%.8x" % Rex::Socket.addr_aton(opts[:ns_server]||"0.0.0.0").unpack("V").first
     domain_length= domain.length + 16
     
-    alloc_stack  = (domain_length) + (domain_length %4)
+    alloc_stack  = (domain_length) + (4 - (domain_length %4))
     reliable     = opts[:reliable]
     
     asm = %Q^

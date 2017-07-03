@@ -57,7 +57,7 @@ module MetasploitModule
       transports: [transport_config_reverse_dns(opts)],
       extensions: (datastore['EXTENSIONS'] || '').split(','),
       ext_init:   (datastore['EXTINIT'] || ''),
-	stageless: true
+      stageless: true
     }
 
     # create the configuration instance based off the parameters
